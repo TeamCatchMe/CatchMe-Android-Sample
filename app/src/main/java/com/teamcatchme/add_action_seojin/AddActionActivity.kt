@@ -1,29 +1,20 @@
 package com.teamcatchme.add_action_seojin
 
-import android.Manifest
-import android.content.ContentValues
-import android.content.Context
 import android.content.Intent
-import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Environment
-import android.os.SystemClock
 import android.provider.MediaStore
-import android.system.Os.close
 import android.util.Log
-import android.widget.ImageView
+import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
-import androidx.core.content.FileProvider
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.teamcatchme.add_action_seojin.utils.compressImageFile
-import com.teamcatchme.catchmesample.BuildConfig
 import com.teamcatchme.catchmesample.R
+import com.teamcatchme.catchmesample.databinding.ActivityAddActionBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
@@ -33,6 +24,29 @@ class AddActionActivity : AppCompatActivity() {
     private var imageUri: Uri? = null
     private var imgPath: String? = null
     private var queryImageUrl: String? = null
+    private lateinit var binding: ActivityAddActionBinding
+
+    private fun attachImage() {
+        imageUri = Uri.fromFile(File(queryImageUrl!!))
+        Log.d("태그", "query Image Url $queryImageUrl")
+        if (queryImageUrl!!.isNotEmpty()) {
+            Glide.with(this@AddActionActivity)
+                .asBitmap()
+                .diskCacheStrategy(DiskCacheStrategy.NONE)
+                .skipMemoryCache(true)
+                .load(queryImageUrl)
+                .into(binding.imageView)
+            binding.btnCancelImg.visibility = View.VISIBLE
+        }
+    }
+
+    private fun detachImage() {
+        imageUri = null
+        imgPath = null
+        queryImageUrl = null
+        binding.imageView.setImageResource(R.drawable.ic_camera_52)
+        binding.btnCancelImg.visibility = View.GONE
+    }
 
     @RequiresApi(Build.VERSION_CODES.Q)
     private val galleryLauncher = registerForActivityResult(
@@ -49,16 +63,7 @@ class AddActionActivity : AppCompatActivity() {
                     queryImageUrl = imgPath ?: ""
                     compressImageFile(queryImageUrl!!, uri = imageUri!!)
                 }
-                imageUri = Uri.fromFile(File(queryImageUrl!!))
-                Log.d("태그", "query Image Url $queryImageUrl")
-                if (queryImageUrl!!.isNotEmpty()) {
-                    Glide.with(this@AddActionActivity)
-                        .asBitmap()
-                        .diskCacheStrategy(DiskCacheStrategy.NONE)
-                        .skipMemoryCache(true)
-                        .load(queryImageUrl)
-                        .into(findViewById(R.id.imageView))
-                }
+                attachImage()
             }
         } else if (it.resultCode == RESULT_CANCELED) {
             Log.d("태그", "Canceled")
@@ -91,9 +96,13 @@ class AddActionActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.Q)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_add_action)
-        findViewById<ImageView>(R.id.imageView).setOnClickListener {
+        binding = ActivityAddActionBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.imageView.setOnClickListener {
             launchGalleryPicker()
+        }
+        binding.btnCancelImg.setOnClickListener {
+            detachImage()
         }
     }
 
