@@ -18,53 +18,26 @@ enum class ScalingLogic {
 suspend fun Activity.compressImageFile(
     path: String,
     shouldOverride: Boolean = true,
-    uri: Uri
+    bitmap: Bitmap
 ): String {
     return withContext(Dispatchers.IO) {
-        var scaledBitmap: Bitmap? = null
-
         try {
-            val (hgt, wdt) = getImageHgtWdt(uri)
-            try {
-                val bm = getBitmapFromUri(uri)
-                Log.d("태그", "original bitmap height${bm?.height} width${bm?.width}")
-                Log.d("태그", "Dynamic height$hgt width$wdt")
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-            // Part 1: Decode image
-            val unscaledBitmap = decodeFile(this@compressImageFile, uri, wdt, hgt, ScalingLogic.FIT)
-            if (unscaledBitmap != null) {
-                if (!(unscaledBitmap.width <= 800 && unscaledBitmap.height <= 800)) {
-                    // Part 2: Scale image
-                    scaledBitmap = createScaledBitmap(unscaledBitmap, wdt, hgt, ScalingLogic.FIT)
-                } else {
-                    scaledBitmap = unscaledBitmap
-                }
-            }
-
             // Store to tmp file
-            val mFolder = File("$filesDir/Images")
-            if (!mFolder.exists()) {
-                mFolder.mkdir()
+            val folder = File("$filesDir/Images")
+            if (!folder.exists()) {
+                folder.mkdir()
             }
-
-            val tmpFile = File(mFolder.absolutePath, "IMG_${getTimestampString()}.png")
-
-            var fos: FileOutputStream? = null
-            try {
-                fos = FileOutputStream(tmpFile)
-                scaledBitmap?.compress(
+            val tmpFile = File(folder.absolutePath, "IMG_${getTimestampString()}.png")
+            runCatching {
+                val fos = FileOutputStream(tmpFile)
+                bitmap.compress(
                     Bitmap.CompressFormat.PNG,
                     getImageQualityPercent(tmpFile),
                     fos
                 )
                 fos.flush()
                 fos.close()
-            } catch (e: FileNotFoundException) {
-                e.printStackTrace()
-
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 e.printStackTrace()
             }
 
@@ -75,17 +48,13 @@ suspend fun Activity.compressImageFile(
                     val srcFile = File(path)
                     val result = tmpFile.copyTo(srcFile, true)
                     Log.d("태그", "copied file ${result.absolutePath}")
-                    Log.d("태", "Delete temp file ${tmpFile.delete()}")
+                    Log.d("태그", "Delete temp file ${tmpFile.delete()}")
                 }
             }
-
-            scaledBitmap?.recycle()
-
             return@withContext if (shouldOverride) path else compressedPath
         } catch (e: Throwable) {
             e.printStackTrace()
         }
-
         return@withContext ""
     }
 
@@ -119,10 +88,8 @@ fun Context.getImageHgtWdt(uri: Uri): Pair<Int, Int> {
     var actualHgt = (opt.outHeight).toFloat()
     var actualWdt = (opt.outWidth).toFloat()
 
-    /*val maxHeight = 816.0f
-    val maxWidth = 612.0f*/
-    val maxHeight = 720f
-    val maxWidth = 1280f
+    val maxHeight = 360f
+    val maxWidth = 640f
     var imgRatio = actualWdt / actualHgt
     val maxRatio = maxWidth / maxHeight
 
@@ -206,68 +173,5 @@ fun calculateSampleSize(
         } else {
             srcWidth / dstWidth
         }
-    }
-}
-
-fun createScaledBitmap(
-    unscaledBitmap: Bitmap, dstWidth: Int, dstHeight: Int,
-    scalingLogic: ScalingLogic
-): Bitmap {
-    val srcRect = calculateSrcRect(
-        unscaledBitmap.width, unscaledBitmap.height,
-        dstWidth, dstHeight, scalingLogic
-    )
-    val dstRect = calculateDstRect(
-        unscaledBitmap.width,
-        unscaledBitmap.height,
-        dstWidth,
-        dstHeight,
-        scalingLogic
-    )
-    val scaledBitmap =
-        Bitmap.createBitmap(dstRect.width(), dstRect.height(), Bitmap.Config.ARGB_8888)
-    val canvas = Canvas(scaledBitmap)
-    canvas.drawBitmap(unscaledBitmap, srcRect, dstRect, Paint(Paint.FILTER_BITMAP_FLAG))
-
-    return scaledBitmap
-}
-
-fun calculateSrcRect(
-    srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int,
-    scalingLogic: ScalingLogic
-): Rect {
-    if (scalingLogic == ScalingLogic.CROP) {
-        val srcAspect = srcWidth.toFloat() / srcHeight.toFloat()
-        val dstAspect = dstWidth.toFloat() / dstHeight.toFloat()
-
-        return if (srcAspect > dstAspect) {
-            val srcRectWidth = (srcHeight * dstAspect).toInt()
-            val srcRectLeft = (srcWidth - srcRectWidth) / 2
-            Rect(srcRectLeft, 0, srcRectLeft + srcRectWidth, srcHeight)
-        } else {
-            val srcRectHeight = (srcWidth / dstAspect).toInt()
-            val scrRectTop = (srcHeight - srcRectHeight) / 2
-            Rect(0, scrRectTop, srcWidth, scrRectTop + srcRectHeight)
-        }
-    } else {
-        return Rect(0, 0, srcWidth, srcHeight)
-    }
-}
-
-fun calculateDstRect(
-    srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int,
-    scalingLogic: ScalingLogic
-): Rect {
-    return if (scalingLogic == ScalingLogic.FIT) {
-        val srcAspect = srcWidth.toFloat() / srcHeight.toFloat()
-        val dstAspect = dstWidth.toFloat() / dstHeight.toFloat()
-
-        if (srcAspect > dstAspect) {
-            Rect(0, 0, dstWidth, (dstWidth / srcAspect).toInt())
-        } else {
-            Rect(0, 0, (dstHeight * srcAspect).toInt(), dstHeight)
-        }
-    } else {
-        Rect(0, 0, dstWidth, dstHeight)
     }
 }

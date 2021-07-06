@@ -1,6 +1,7 @@
 package com.teamcatchme.add_action_seojin
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
@@ -9,25 +10,30 @@ import android.provider.MediaStore
 import android.util.Log
 import android.view.View
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.viewModels
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
-import com.bumptech.glide.Glide
-import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.teamcatchme.add_action_seojin.utils.compressImageFile
+import com.teamcatchme.add_action_seojin.utils.*
 import com.teamcatchme.catchmesample.R
 import com.teamcatchme.catchmesample.databinding.ActivityAddActionBinding
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import java.io.File
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
 
 class AddActionActivity : AppCompatActivity() {
     private var imageUri: Uri? = null
-    private var imgPath: String? = null
     private var queryImageUrl: String? = null
     private lateinit var binding: ActivityAddActionBinding
+    private var bitmap: Bitmap? = null
+    private val addActionViewModel: AddActionViewModel by viewModels()
 
     private fun detachImage() {
         imageUri = null
-        imgPath = null
         queryImageUrl = null
         binding.imageView.setImageResource(R.drawable.ic_camera_52)
         binding.btnCancelImg.visibility = View.GONE
@@ -38,39 +44,41 @@ class AddActionActivity : AppCompatActivity() {
     ) {
         when (it.resultCode) {
             RESULT_OK -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    lifecycleScope.launch(Dispatchers.Main.immediate) {
-                        if (it.data?.data != null) {     //Photo from gallery
-                            imageUri = it.data!!.data
-                            queryImageUrl = imageUri?.path!!
-                            queryImageUrl = compressImageFile(queryImageUrl!!, false, imageUri!!)
-                        } else {
-                            queryImageUrl = imgPath ?: ""
-                            compressImageFile(queryImageUrl!!, uri = imageUri!!)
+                lifecycleScope.launch {
+                    imageUri = it.data!!.data
+                    if (imageUri == null) {
+                        return@launch
+                    }
+                    val (hgt, wdt) = getImageHgtWdt(imageUri!!)
+                    bitmap = decodeFile(
+                        this@AddActionActivity, imageUri!!, wdt, hgt, ScalingLogic.FIT
+                    )
+                    binding.imageView.setImageBitmap(bitmap)
+                    binding.btnCancelImg.visibility = View.VISIBLE
+                    /* 위의 코드가 안 될 시 아래 코드로 ㄱㄱ
+                    when {
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                            compressImageFile(imageUri?.path!!, false, bitmap!!)
+                            imageUri = Uri.fromFile(File(queryImageUrl!!))
+                            Log.d("태그", "query Image Url $queryImageUrl")
+                            if (queryImageUrl!!.isNotEmpty()) {
+                                Glide.with(this@AddActionActivity)
+                                    .asBitmap()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .load(queryImageUrl)
+                                    .into(binding.imageView)
+                            }
                         }
-                        imageUri = Uri.fromFile(File(queryImageUrl!!))
-                        Log.d("태그", "query Image Url $queryImageUrl")
-                        if (queryImageUrl!!.isNotEmpty()) {
+                        else -> {
                             Glide.with(this@AddActionActivity)
                                 .asBitmap()
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
-                                .load(queryImageUrl)
+                                .load(imageUri)
                                 .into(binding.imageView)
-                            binding.btnCancelImg.visibility = View.VISIBLE
                         }
-                    }
-                } else {
-                    lifecycleScope.launch(Dispatchers.Main.immediate) {
-                        imageUri = it.data!!.data
-                        Glide.with(this@AddActionActivity)
-                            .asBitmap()
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
-                            .load(imageUri)
-                            .into(binding.imageView)
-                        binding.btnCancelImg.visibility = View.VISIBLE
-                    }
+                    }*/
                 }
             }
             RESULT_CANCELED -> {
@@ -102,6 +110,23 @@ class AddActionActivity : AppCompatActivity() {
         }
     }
 
+    private fun sendImage() {
+        if (imageUri != null) {
+            val targetString = "흑마법 드르릉"
+            registerObserver()
+            addActionViewModel.sendPostRequest(bitmap, targetString)
+        }
+    }
+
+    private fun registerObserver() {
+        addActionViewModel.postSuccessResponse.observe(this, Observer {
+            Log.d("태그", "$it")
+        })
+        addActionViewModel.postFailureResponse.observe(this, Observer {
+            Log.d("태그", "$it")
+        })
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddActionBinding.inflate(layoutInflater)
@@ -111,6 +136,9 @@ class AddActionActivity : AppCompatActivity() {
         }
         binding.btnCancelImg.setOnClickListener {
             detachImage()
+        }
+        binding.btnSendImg.setOnClickListener {
+            sendImage()
         }
     }
 
