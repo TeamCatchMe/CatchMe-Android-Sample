@@ -3,7 +3,7 @@ package com.teamcatchme.add_action_seojin
 import com.google.gson.annotations.SerializedName
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
-import retrofit2.Call
+import retrofit2.Response
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -12,10 +12,10 @@ import retrofit2.http.PartMap
 interface PostImg {
     @Multipart
     @POST("post")
-    fun postImg(
+    suspend fun postImg(
         @Part postImg: MultipartBody.Part,
         @PartMap data: HashMap<String, RequestBody>
-    ): Call<PostResponse>
+    ): Response<PostResponse>
 }
 
 data class PostResponse(
