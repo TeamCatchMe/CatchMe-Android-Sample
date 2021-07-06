@@ -2,7 +2,6 @@ package com.teamcatchme.add_action_seojin
 
 import android.content.Intent
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
@@ -15,9 +14,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
-import com.google.gson.JsonObject
-import com.teamcatchme.add_action_seojin.utils.compressImageFile
-import com.teamcatchme.add_action_seojin.utils.getBitmapFromUri
+import com.teamcatchme.add_action_seojin.utils.*
 import com.teamcatchme.catchmesample.R
 import com.teamcatchme.catchmesample.databinding.ActivityAddActionBinding
 import kotlinx.coroutines.Dispatchers
@@ -35,16 +32,16 @@ import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
-import java.security.AccessController.getContext
 
 class AddActionActivity : AppCompatActivity() {
     private var imageUri: Uri? = null
     private var imgPath: String? = null
     private var queryImageUrl: String? = null
     private lateinit var binding: ActivityAddActionBinding
+    private var bitmap: Bitmap? = null
 
     companion object {
-        val baseUrl = "http://52.14.194.163:5000/"
+        const val baseUrl = "http://52.14.194.163:5000/"
     }
 
     private fun detachImage() {
@@ -60,39 +57,46 @@ class AddActionActivity : AppCompatActivity() {
     ) {
         when (it.resultCode) {
             RESULT_OK -> {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    lifecycleScope.launch(Dispatchers.Main.immediate) {
-                        if (it.data?.data != null) {     //Photo from gallery
-                            imageUri = it.data!!.data
-                            queryImageUrl = imageUri?.path!!
-                            queryImageUrl = compressImageFile(queryImageUrl!!, false, imageUri!!)
-                        } else {
-                            queryImageUrl = imgPath ?: ""
-                            compressImageFile(queryImageUrl!!, uri = imageUri!!)
+                lifecycleScope.launch(Dispatchers.Main.immediate) {
+                    imageUri = it.data!!.data
+                    if (imageUri==null){
+                        return@launch
+                    }
+                    val (hgt, wdt) = getImageHgtWdt(imageUri!!)
+                    bitmap = decodeFile(
+                        this@AddActionActivity, imageUri!!, wdt, hgt, ScalingLogic.FIT
+                    )
+                    when {
+                        Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> {
+                            if (it.data?.data != null) {
+                                queryImageUrl = imageUri?.path!!
+                                queryImageUrl =
+                                    compressImageFile(queryImageUrl!!, false, bitmap!!)
+                            } else {
+                                queryImageUrl = imgPath ?: ""
+                                compressImageFile(queryImageUrl!!, bitmap = bitmap!!)
+                            }
+                            imageUri = Uri.fromFile(File(queryImageUrl!!))
+                            Log.d("태그", "query Image Url $queryImageUrl")
+                            if (queryImageUrl!!.isNotEmpty()) {
+                                Glide.with(this@AddActionActivity)
+                                    .asBitmap()
+                                    .diskCacheStrategy(DiskCacheStrategy.NONE)
+                                    .skipMemoryCache(true)
+                                    .load(queryImageUrl)
+                                    .into(binding.imageView)
+                            }
                         }
-                        imageUri = Uri.fromFile(File(queryImageUrl!!))
-                        Log.d("태그", "query Image Url $queryImageUrl")
-                        if (queryImageUrl!!.isNotEmpty()) {
+                        else -> {
                             Glide.with(this@AddActionActivity)
                                 .asBitmap()
                                 .diskCacheStrategy(DiskCacheStrategy.NONE)
                                 .skipMemoryCache(true)
-                                .load(queryImageUrl)
+                                .load(imageUri)
                                 .into(binding.imageView)
-                            binding.btnCancelImg.visibility = View.VISIBLE
                         }
                     }
-                } else {
-                    lifecycleScope.launch(Dispatchers.Main.immediate) {
-                        imageUri = it.data!!.data
-                        Glide.with(this@AddActionActivity)
-                            .asBitmap()
-                            .diskCacheStrategy(DiskCacheStrategy.NONE)
-                            .skipMemoryCache(true)
-                            .load(imageUri)
-                            .into(binding.imageView)
-                        binding.btnCancelImg.visibility = View.VISIBLE
-                    }
+                    binding.btnCancelImg.visibility = View.VISIBLE
                 }
             }
             RESULT_CANCELED -> {
@@ -138,7 +142,7 @@ class AddActionActivity : AppCompatActivity() {
             val textHashMap = HashMap<String, RequestBody>()
             textHashMap["text"] = textRequestBody
 
-            val targetBitmap: Bitmap? = getBitmapFromUri(imageUri!!)
+            val targetBitmap: Bitmap? = bitmap
             val bitmapRequestBody: BitmapRequestBody? = targetBitmap?.let { BitmapRequestBody(it) }
             val bitmapMultipartBody: MultipartBody.Part? =
                 bitmapRequestBody?.let { MultipartBody.Part.createFormData("image", "seojin", it) }
