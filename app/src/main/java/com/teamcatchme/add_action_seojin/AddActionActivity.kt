@@ -1,6 +1,8 @@
 package com.teamcatchme.add_action_seojin
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
@@ -12,18 +14,37 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.DiskCacheStrategy
+import com.google.gson.JsonObject
 import com.teamcatchme.add_action_seojin.utils.compressImageFile
+import com.teamcatchme.add_action_seojin.utils.getBitmapFromUri
 import com.teamcatchme.catchmesample.R
 import com.teamcatchme.catchmesample.databinding.ActivityAddActionBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
+import okio.BufferedSink
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
+import java.security.AccessController.getContext
 
 class AddActionActivity : AppCompatActivity() {
     private var imageUri: Uri? = null
     private var imgPath: String? = null
     private var queryImageUrl: String? = null
     private lateinit var binding: ActivityAddActionBinding
+
+    companion object {
+        val baseUrl = "http://52.14.194.163:5000/"
+    }
 
     private fun detachImage() {
         imageUri = null
@@ -102,6 +123,42 @@ class AddActionActivity : AppCompatActivity() {
         }
     }
 
+    private fun sendImage() {
+        val retrofit: Retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(
+            GsonConverterFactory.create()
+        ).build()
+        val service = retrofit.create(PostImg::class.java)
+        val targetString = "흑마법 드르릉"
+        val targetBitmap: Bitmap? = getBitmapFromUri(imageUri!!)
+        val bitmapRequestBody: BitmapRequestBody? = targetBitmap?.let { BitmapRequestBody(it) }
+        val uploadFile: MultipartBody.Part? =
+            bitmapRequestBody?.let { MultipartBody.Part.createFormData("image", "seojin", it) }
+        val textRequestBody: RequestBody =
+            targetString.toRequestBody("text/plain".toMediaTypeOrNull())
+        val textHashMap = HashMap<String, RequestBody>()
+        textHashMap["text"] = textRequestBody
+        val call = service.postImg(uploadFile!!, textHashMap)
+        call.enqueue(object : Callback<PostResponse> {
+            override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
+                val responseBody = response.body()
+                Log.d("태그", "Success : $responseBody")
+            }
+
+            override fun onFailure(call: Call<PostResponse>, t: Throwable) {
+                Log.d("태그", "Failure : ${t.message}")
+            }
+
+        })
+    }
+
+    inner class BitmapRequestBody(private val bitmap: Bitmap) : RequestBody() {
+        override fun contentType(): MediaType? = "image/jpeg".toMediaType()
+
+        override fun writeTo(sink: BufferedSink) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 99, sink.outputStream())
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityAddActionBinding.inflate(layoutInflater)
@@ -111,6 +168,9 @@ class AddActionActivity : AppCompatActivity() {
         }
         binding.btnCancelImg.setOnClickListener {
             detachImage()
+        }
+        binding.btnSendImg.setOnClickListener {
+            sendImage()
         }
     }
 
