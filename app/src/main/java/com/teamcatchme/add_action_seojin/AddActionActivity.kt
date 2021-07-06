@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
@@ -124,36 +125,48 @@ class AddActionActivity : AppCompatActivity() {
     }
 
     private fun sendImage() {
-        val retrofit: Retrofit = Retrofit.Builder().baseUrl(baseUrl).addConverterFactory(
-            GsonConverterFactory.create()
-        ).build()
-        val service = retrofit.create(PostImg::class.java)
-        val targetString = "흑마법 드르릉"
-        val targetBitmap: Bitmap? = getBitmapFromUri(imageUri!!)
-        val bitmapRequestBody: BitmapRequestBody? = targetBitmap?.let { BitmapRequestBody(it) }
-        val uploadFile: MultipartBody.Part? =
-            bitmapRequestBody?.let { MultipartBody.Part.createFormData("image", "seojin", it) }
-        val textRequestBody: RequestBody =
-            targetString.toRequestBody("text/plain".toMediaTypeOrNull())
-        val textHashMap = HashMap<String, RequestBody>()
-        textHashMap["text"] = textRequestBody
-        val call = service.postImg(uploadFile!!, textHashMap)
-        call.enqueue(object : Callback<PostResponse> {
-            override fun onResponse(call: Call<PostResponse>, response: Response<PostResponse>) {
-                val responseBody = response.body()
-                Log.d("태그", "Success : $responseBody")
-            }
+        if (imageUri != null) {
+            val gson = GsonConverterFactory.create()
+            val retrofit: Retrofit = Retrofit.Builder()
+                .baseUrl(baseUrl)
+                .addConverterFactory(gson)
+                .build()
 
-            override fun onFailure(call: Call<PostResponse>, t: Throwable) {
-                Log.d("태그", "Failure : ${t.message}")
-            }
+            val targetString = "흑마법 드르릉"
+            val textRequestBody: RequestBody =
+                targetString.toRequestBody("text/plain".toMediaTypeOrNull())
+            val textHashMap = HashMap<String, RequestBody>()
+            textHashMap["text"] = textRequestBody
 
-        })
+            val targetBitmap: Bitmap? = getBitmapFromUri(imageUri!!)
+            val bitmapRequestBody: BitmapRequestBody? = targetBitmap?.let { BitmapRequestBody(it) }
+            val bitmapMultipartBody: MultipartBody.Part? =
+                bitmapRequestBody?.let { MultipartBody.Part.createFormData("image", "seojin", it) }
+
+            val service = retrofit.create(PostImg::class.java)
+            val call = bitmapMultipartBody?.let { service.postImg(it, textHashMap) }
+            call?.enqueue(object : Callback<PostResponse> {
+                override fun onResponse(
+                    call: Call<PostResponse>,
+                    response: Response<PostResponse>
+                ) {
+                    val responseBody = response.body()
+                    Log.d("태그", "Success : $responseBody")
+                    Toast.makeText(this@AddActionActivity, "Request Success", Toast.LENGTH_SHORT)
+                        .show()
+                }
+
+                override fun onFailure(call: Call<PostResponse>, t: Throwable) {
+                    Log.d("태그", "Failure : ${t.message}")
+                    Toast.makeText(this@AddActionActivity, "Request Failed", Toast.LENGTH_SHORT)
+                        .show()
+                }
+            })
+        }
     }
 
     inner class BitmapRequestBody(private val bitmap: Bitmap) : RequestBody() {
-        override fun contentType(): MediaType? = "image/jpeg".toMediaType()
-
+        override fun contentType(): MediaType = "image/jpeg".toMediaType()
         override fun writeTo(sink: BufferedSink) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 99, sink.outputStream())
         }
