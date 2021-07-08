@@ -14,7 +14,7 @@ class CalendarActivity : AppCompatActivity() {
 
         val year = 2021
         val month = 7
-        val txtYearMonth = year.toString() + String.format("%02d", month)
+        val txtYearMonth = year.toString() + "-" + String.format("%02d", month)
         Log.d("태그", txtYearMonth)
         val calendarAdapter = CalendarAdapter(txtYearMonth)
         calendarAdapter.setCachuData(hashMapOf(5 to 1))

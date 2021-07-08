@@ -25,9 +25,9 @@ class CalendarAdapter(private val yearMonth: String) :
     }
 
     private fun setDateData() {
-        val firstDateFormat = yearMonth + "01"
+        val firstDateFormat = "$yearMonth-01"
         val calendar = Calendar.getInstance()
-        calendar.time = SimpleDateFormat("yyyyMMdd").parse(firstDateFormat)
+        calendar.time = SimpleDateFormat("yyyy-MM-dd").parse(firstDateFormat)
         val firstDateOfWeek = calendar.get(Calendar.DAY_OF_WEEK) - 1
         val lastDate = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
@@ -85,7 +85,11 @@ class CalendarAdapter(private val yearMonth: String) :
         when (obj.values.first()) {
             -1 -> (holder as NoneTypeViewHolder)
             0 -> (holder as DateTypeViewHolder).onBind(obj.keys.first())
-            else -> (holder as CachuTypeViewHolder).onBind(obj.keys.first(), obj.values.first())
+            else -> (holder as CachuTypeViewHolder).onBind(
+                obj.keys.first(),
+                obj.values.first(),
+                yearMonth
+            )
         }
     }
 
@@ -102,9 +106,14 @@ class CalendarAdapter(private val yearMonth: String) :
 
     class CachuTypeViewHolder(private val binding: ItemCalendarCachuTrueBinding) :
         RecyclerView.ViewHolder(binding.root) {
-        fun onBind(date: Int, cachuIdx: Int) {
+        fun onBind(date: Int, cachuIdx: Int, yearMonth: String) {
             binding.txtCalendarDate.text = date.toString()
             binding.imgCalendarCachu.setImageResource(R.drawable.ic_cachu1)
+            binding.constraintCalendarCachuTrue.setOnClickListener {
+                val txtCalendarToast = "$yearMonth-$date"
+                Log.d("태그", "clicked : $txtCalendarToast")
+                // 여기에 Dialog 띄우는 로직
+            }
         }
     }
 
