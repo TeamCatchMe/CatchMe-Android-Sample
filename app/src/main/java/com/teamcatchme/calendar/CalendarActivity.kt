@@ -3,6 +3,7 @@ package com.teamcatchme.calendar
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
+import androidx.viewpager2.widget.ViewPager2
 import com.teamcatchme.catchmesample.databinding.ActivityCalendarBinding
 
 class CalendarActivity : AppCompatActivity() {
@@ -12,13 +13,27 @@ class CalendarActivity : AppCompatActivity() {
         binding = ActivityCalendarBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val year = 2021
-        val month = 7
-        val txtYearMonth = year.toString() + "-" + String.format("%02d", month)
-        Log.d("태그", txtYearMonth)
-        val calendarAdapter = CalendarAdapter(txtYearMonth)
-        calendarAdapter.setCachuData(hashMapOf(5 to 1))
-        binding.rcvCalendar.adapter = calendarAdapter
-        binding.txtCalendarYearmonth.text = txtYearMonth
+        val monthAdapter = MonthAdapter()
+        binding.viewpagerCalendar.adapter = monthAdapter
+        binding.viewpagerCalendar.currentItem = Int.MAX_VALUE
+
+        var lastPosition = Int.MAX_VALUE
+        binding.viewpagerCalendar.registerOnPageChangeCallback(object :
+            ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(
+                position: Int
+            ) {
+                super.onPageSelected(position)
+                when (position > lastPosition) {
+                    true -> {
+                        monthAdapter.switchNextMonth()
+                    }
+                    false -> {
+                        monthAdapter.switchPreviousMonth()
+                    }
+                }
+                lastPosition = position
+            }
+        })
     }
 }

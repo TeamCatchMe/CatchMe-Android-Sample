@@ -43,8 +43,6 @@ class CalendarAdapter(private val yearMonth: String) :
         }
 
         notifyDataSetChanged()
-        Log.d("태그", cachuData.toString())
-        Log.d("태그", dateData.toString())
     }
 
     override fun getItemViewType(position: Int): Int {
