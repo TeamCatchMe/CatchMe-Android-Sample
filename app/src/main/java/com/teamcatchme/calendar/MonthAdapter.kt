@@ -5,34 +5,25 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.teamcatchme.catchmesample.databinding.ItemCalendarMonthBinding
+import java.time.LocalDate
 
-class MonthAdapter() : RecyclerView.Adapter<MonthAdapter.ViewHolder>() {
-    private var year = 2021
-    private var month = 7
+class MonthAdapter : RecyclerView.Adapter<MonthAdapter.ViewHolder>() {
+    private val yearList = mutableListOf<CalendarYearMonthData>()
 
-    fun switchPreviousMonth() {
-        month -= 1
-        if (month == 0) {
-            month = 12
-            year -= 1
+    init {
+        val dateTime = LocalDate.now()
+        val currentYear = dateTime.year
+        for (year in currentYear - 3..currentYear) {
+            for (month in 1..12) {
+                yearList.add(CalendarYearMonthData(year = year, month = month))
+            }
         }
-        notifyDataSetChanged()
-    }
-
-    fun switchNextMonth() {
-        month += 1
-        if (month == 13) {
-            month = 1
-            year += 1
-        }
-        notifyDataSetChanged()
     }
 
     class ViewHolder(private val dataBinding: ItemCalendarMonthBinding) :
         RecyclerView.ViewHolder(dataBinding.root) {
         fun onBind(year: Int, month: Int) {
             val txtYearMonth = year.toString() + "-" + String.format("%02d", month)
-            Log.d("태그", txtYearMonth)
             val calendarAdapter = CalendarAdapter(txtYearMonth)
             calendarAdapter.setCachuData(hashMapOf(5 to 1))
             dataBinding.rcvCalendar.adapter = calendarAdapter
@@ -46,9 +37,10 @@ class MonthAdapter() : RecyclerView.Adapter<MonthAdapter.ViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.onBind(year, month)
+        Log.d("태그", "$position, ${yearList[position]}")
+        holder.onBind(yearList[position].year, yearList[position].month)
     }
 
-    override fun getItemCount(): Int = Int.MAX_VALUE
+    override fun getItemCount(): Int = yearList.size
 
 }

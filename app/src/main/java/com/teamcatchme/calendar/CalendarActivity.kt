@@ -3,8 +3,8 @@ package com.teamcatchme.calendar
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.util.Log
-import androidx.viewpager2.widget.ViewPager2
 import com.teamcatchme.catchmesample.databinding.ActivityCalendarBinding
+import java.time.LocalDate
 
 class CalendarActivity : AppCompatActivity() {
     lateinit var binding: ActivityCalendarBinding
@@ -14,26 +14,11 @@ class CalendarActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         val monthAdapter = MonthAdapter()
+        val dateTime = LocalDate.now()
+        val currentMonth = dateTime.month.value
+        Log.d("태그", "set current month ${36 + currentMonth}")
         binding.viewpagerCalendar.adapter = monthAdapter
-        binding.viewpagerCalendar.currentItem = Int.MAX_VALUE
+        binding.viewpagerCalendar.currentItem = 35 + currentMonth
 
-        var lastPosition = Int.MAX_VALUE
-        binding.viewpagerCalendar.registerOnPageChangeCallback(object :
-            ViewPager2.OnPageChangeCallback() {
-            override fun onPageSelected(
-                position: Int
-            ) {
-                super.onPageSelected(position)
-                when (position > lastPosition) {
-                    true -> {
-                        monthAdapter.switchNextMonth()
-                    }
-                    false -> {
-                        monthAdapter.switchPreviousMonth()
-                    }
-                }
-                lastPosition = position
-            }
-        })
     }
 }
