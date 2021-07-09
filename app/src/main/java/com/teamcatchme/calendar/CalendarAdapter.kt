@@ -12,7 +12,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.HashMap
 
-class CalendarAdapter(private val yearMonth: String) :
+class CalendarAdapter(val yearMonth: String) :
     RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private val dateData = mutableListOf<HashMap<Int, Int>>()
