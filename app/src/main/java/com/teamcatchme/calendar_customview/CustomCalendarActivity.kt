@@ -11,5 +11,15 @@ class CustomCalendarActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityCustomCalendarBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        initCalendar()
+    }
+
+    private fun initCalendar() {
+        val calendarAdapter = CustomCalendarAdapter(this)
+        binding.viewpagerCustomCalendar.apply {
+            adapter = calendarAdapter
+            setCurrentItem(CustomCalendarAdapter.START_POSITION, true)
+        }
+
     }
 }
