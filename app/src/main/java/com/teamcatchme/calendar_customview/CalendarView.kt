@@ -24,7 +24,7 @@ constructor(
         val lastDateOfMonth = dateCalendar.getActualMaximum(Calendar.DATE)
         dateCalendar.set(Calendar.MONTH, month - 2)
         val lastDateOfLastMonth = dateCalendar.getActualMaximum(Calendar.DATE)
-        if (firstDayOfMonth != 7) {
+        if (firstDayOfMonth != 6) {
             for (blank in (lastDateOfLastMonth - firstDayOfMonth)..lastDateOfLastMonth) {
                 addView(CalendarItemView(context = context, date = blank, isPrevious = true))
             }
