@@ -26,6 +26,7 @@ class CustomCalendarFragment(private val millsId: Long) : Fragment() {
     private fun initView() {
         val date = Date(millsId)
         binding.text.text = date.toString()
+        binding.calendarView.drawCalendar(date)
     }
 
     override fun onDestroyView() {
