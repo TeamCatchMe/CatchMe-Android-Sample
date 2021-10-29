@@ -38,18 +38,21 @@ constructor(
         val catchuDrawable =
             ResourcesCompat.getDrawable(contextResources, R.drawable.ic_cachu1, null);
         val catchuBitmap = drawableToBitmap(requireNotNull(catchuDrawable))
-        canvas.drawBitmap(
-            requireNotNull(catchuBitmap),
-            (width / 2 - catchuBitmap.width / 2).toFloat(),
-            0f,
-            null
-        )
-        canvas.drawText(
-            date.toString(),
-            (width / 2).toFloat(),
-            (catchuBitmap.height + 28).toFloat(),
-            paint
-        )
+        runCatching {
+            canvas.drawBitmap(
+                requireNotNull(catchuBitmap),
+                (width / 2 - catchuBitmap.width / 2).toFloat(),
+                0f,
+                null
+            )
+            canvas.drawText(
+                date.toString(),
+                (width / 2).toFloat(),
+                (catchuBitmap.height + 28).toFloat(),
+                paint
+            )
+        }.onFailure { Log.e("error", it.toString()) }
+
         // 누르면 프라그먼트 뿅 하게 리스너 추가하기
     }
 
@@ -57,9 +60,9 @@ constructor(
         super.onDraw(canvas)
         paint.textAlign = Paint.Align.CENTER
         if (canvas == null) return;
-        if (date != null) {
-            if (catchuList.isNotEmpty()) drawDateWithCatchuRect(canvas, date, catchuList)
-            else drawDateRect(canvas, date)
+        date?.run {
+            if (catchuList.isNotEmpty()) drawDateWithCatchuRect(canvas, this, catchuList)
+            else drawDateRect(canvas, this)
         }
     }
 }
