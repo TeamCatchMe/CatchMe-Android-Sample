@@ -17,12 +17,17 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.CatchMeSample">
-        <activity android:name="com.teamcatchme.calendar.CalendarActivity">
+        <activity
+            android:name="com.teamcatchme.calendar_customview.CustomCalendarActivity"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+        <activity android:name="com.teamcatchme.calendar.CalendarActivity">
+
         </activity>
         <activity android:name="com.teamcatchme.add_action_seojin.AddActionActivity">
 
