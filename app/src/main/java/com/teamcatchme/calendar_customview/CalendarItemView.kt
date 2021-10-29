@@ -37,8 +37,8 @@ constructor(
         val contextResources = context.resources
         val catchuDrawable =
             ResourcesCompat.getDrawable(contextResources, R.drawable.ic_cachu1, null);
-        val catchuBitmap = drawableToBitmap(requireNotNull(catchuDrawable))
         runCatching {
+            val catchuBitmap = catchuDrawable?.toBitmap()
             canvas.drawBitmap(
                 requireNotNull(catchuBitmap),
                 (width / 2 - catchuBitmap.width / 2).toFloat(),
