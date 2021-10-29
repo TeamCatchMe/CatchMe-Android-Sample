@@ -14,7 +14,7 @@ class CustomCalendarAdapter(fragmentActivity: FragmentActivity) :
 
     override fun createFragment(position: Int): Fragment {
         val millsId = getItemId(position)
-        return CustomCalendarFragment(millsId)
+        return CustomCalendarFragment.newInstance(millsId)
     }
 
     override fun getItemId(position: Int): Long {
